@@ -1,14 +1,15 @@
 // Reference code for generating a background using C
 // Written by ChatGPT  :)
+#define OPENGL_ES
 #ifdef OPENGL_ES
 #include <GLES3/gl3.h>
 #include <GLES3/gl3ext.h>
 #else
-#include <EGL/egl.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #endif
-#include <SOIL.h>
+#include <EGL/egl.h>
+#include <SOIL/SOIL.h>
 #include <iostream>
 
 const int WIDTH = 800;
@@ -56,10 +57,12 @@ int main() {
     eglInitialize(display, nullptr, nullptr);
 
     // Choose a config
-    eglChooseConfig(display, attribList, &config, 1, &numConfigs);
+    //eglChooseConfig(display, attribList, &config, 1, &numConfigs);
+    eglChooseConfig(display, nullptr, &config, 1, &numConfigs);
 
     // Create a surface
-    surface = eglCreateWindowSurface(display, config, nativeWindow, nullptr);
+    //surface = eglCreateWindowSurface(display, config, nativeWindow, nullptr);
+    surface = eglCreateWindowSurface(display, config, EGLNativeWindowType(), nullptr);
 
     // Create a context
     EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
@@ -67,11 +70,11 @@ int main() {
 
     // Make the context current
     eglMakeCurrent(display, surface, surface, context);
+#else
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW\n";
         return -1;
     }
-#else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -98,7 +101,9 @@ int main() {
     unsigned char* image = SOIL_load_image("background.png", &width, &height, 0, SOIL_LOAD_RGB);
     if (!image) {
         std::cerr << "Failed to load background image\n";
+#ifndef OPENGL_ES
         glfwTerminate();
+#endif
         return -1;
     }
 
@@ -133,7 +138,9 @@ int main() {
         char infoLog[512];
         glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
         std::cerr << "Failed to compile vertex shader: " << infoLog << '\n';
+#ifndef OPENGL_ES
         glfwTerminate();
+#endif
         return -1;
     }
 
@@ -146,7 +153,9 @@ int main() {
         char infoLog[512];
         glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
         std::cerr << "Failed to compile fragment shader: " << infoLog << '\n';
+#ifndef OPENGL_ES
         glfwTerminate();
+#endif
         return -1;
     }
 
@@ -161,7 +170,9 @@ int main() {
         char infoLog[512];
         glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
         std::cerr << "Failed to link shader program: " << infoLog << '\n';
+#ifndef OPENGL_ES
         glfwTerminate();
+#endif
         return -1;
     }
 
@@ -205,10 +216,6 @@ int main() {
         EGLint event;
         while (eglGetError() != EGL_SUCCESS) {}
         while (eglQuerySurface(display, surface, EGL_RENDER_BUFFER, &event)) {}
-        if (event == EGL_SURFACE_LOST) {
-            std::cout << "Surface lost" << std::endl;
-            break;
-        }
         if (event == EGL_CONTEXT_LOST) {
             std::cout << "Context lost" << std::endl;
             break;
